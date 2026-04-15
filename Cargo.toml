@@ -1,0 +1,15 @@
+[package]
+name = "lac_to_lbrn2"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "lac_to_lbrn2"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+zip = "2"
+base64 = "0.22"
+clap = { version = "4", features = ["derive"] }
+tempfile = "3"

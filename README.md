@@ -2,7 +2,7 @@
 
 > Convert **BambuStudio LAC** laser files into **LightBurn `.lbrn2`** projects — instantly, from the command line.
 
-![Ruby](https://img.shields.io/badge/ruby-%3E%3D_3.1-CC342D?style=flat-square&logo=ruby&logoColor=white)
+![Rust](https://img.shields.io/badge/rust-%3E%3D_1.75-orange?style=flat-square&logo=rust&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
 ![Status](https://img.shields.io/badge/status-active-brightgreen?style=flat-square)
 
@@ -25,16 +25,17 @@ BambuStudio exports laser-ready designs as `.lac` files — a ZIP archive contai
 
 ## Requirements
 
-- Ruby `>= 3.1`
-- [Bundler](https://bundler.io/)
+- [Rust](https://rustup.rs/) `>= 1.75` (with `cargo`)
 
-Install dependencies:
+---
+
+## Build
 
 ```sh
-bundle install
+cargo build --release
 ```
 
-This also adds `base64` to the bundle for Ruby 3.4+ compatibility.
+The compiled binary lands at `target/release/convert`.
 
 ---
 
@@ -43,6 +44,8 @@ This also adds `base64` to the bundle for Ruby 3.4+ compatibility.
 ```sh
 bin/convert input.lac
 ```
+
+`bin/convert` is a thin shell wrapper that builds the release binary on first run if it is not already present, then delegates to it. You can also invoke the binary directly after building.
 
 This produces `input.lbrn2` alongside the source file.
 
@@ -75,14 +78,37 @@ bin/convert --normalize input.lac
 
 The converter pipeline:
 
-1. **Extract** — unzip relevant folders into a temp directory
-2. **Parse scene** — `SceneBuilder` walks the component tree, composing affine transforms at each level to produce a flat list of `Instance` structs
+1. **Extract** — unzip relevant folders into a temp directory (`tempfile`)
+2. **Parse scene** — `SceneBuilder` walks the component tree, composing affine transforms at each level to produce a flat list of `Instance` values
 3. **Inject process types** — map each object to its `LaserLineEngrave` / `LaserFillEngrave` / `LaserLineCut` process type from `project_settings.json`
 4. **Load process params** — resolve power & speed from the material `.config` file
 5. **Emit XML** — `XmlBuilder` serialises the LightBurn project:
    - `CutSetting` / `CutSetting_Img` nodes per layer
    - `Shape` nodes for each object (`Path`, `Ellipse`, `Bitmap`)
    - Embedded Base64 image data for rasters
+
+### Source layout
+
+```
+src/
+  main.rs                  ← CLI (clap)
+  converter.rs             ← top-level orchestration
+  constants.rs             ← process-type and dither maps
+  types.rs                 ← Segment, Vertex, Instance, ProcessParams
+  transform.rs             ← 2-D affine Transform
+  path_parser.rs           ← tokeniser + SVG-like path parser
+  subpath_converter.rs     ← segments → LightBurn VertList / PrimList
+  scene_builder.rs         ← component-tree walker
+  xml_builder.rs           ← indent-aware XML emitter
+  utils.rs                 ← fnum (%.10g formatter)
+  transformers/
+    ellipse.rs             ← Ellipse shape emitter
+    path.rs                ← Path shape emitter
+    raster_image.rs        ← Bitmap shape emitter
+  visitors/
+    cut_setting.rs         ← CutSetting / CutSetting_Img emitter
+    shape.rs               ← dispatches instances to transformers
+```
 
 ---
 
@@ -93,9 +119,9 @@ The converter pipeline:
 | `LaserLineEngrave`       | `Cut`          | Line               |
 | `LaserFillEngrave`       | `Scan`         | Fill               |
 | `LaserLineCut`           | `Cut`          | Cut                |
-| `Raster image`           | `Image`        | `C03`, …           |
+| Raster image             | `Image`        | `C03`, …           |
 
-Additional process types (no idea, but just in case) not in the table above are assigned to sequential layers.
+Additional process types not in the table above are assigned to sequential layers.
 
 ---
 

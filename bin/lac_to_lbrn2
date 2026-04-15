@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BINARY="$SCRIPT_DIR/../target/release/lac_to_lbrn2"
+
+if [ ! -f "$BINARY" ]; then
+    echo "Building lac_to_lbrn2..." >&2
+    cargo build --release --manifest-path "$SCRIPT_DIR/../Cargo.toml"
+fi
+
+exec "$BINARY" "$@"
