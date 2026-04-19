@@ -1,3 +1,16 @@
+pub fn id_str(v: &serde_json::Value) -> Option<String> {
+    if let Some(s) = v.as_str() {
+        return Some(s.to_string());
+    }
+    if let Some(n) = v.as_u64() {
+        return Some(n.to_string());
+    }
+    if let Some(n) = v.as_i64() {
+        return Some(n.to_string());
+    }
+    None
+}
+
 pub fn fnum(n: f64) -> String {
     if n == 0.0 {
         return "0".to_string();

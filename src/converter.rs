@@ -4,7 +4,7 @@ use crate::types::ProcessParams;
 use crate::visitors::cut_setting::CutSettingVisitor;
 use crate::visitors::shape::ShapeVisitor;
 use crate::xml_builder::XmlBuilder;
-use serde_json::Value as JValue;
+use crate::utils::id_str;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::io;
@@ -285,19 +285,6 @@ fn emit_header(xml: &mut XmlBuilder) {
         xml.leaf(name, &[("Value", value)]);
     }
     xml.close("UIPrefs");
-}
-
-fn id_str(v: &JValue) -> Option<String> {
-    if let Some(s) = v.as_str() {
-        return Some(s.to_string());
-    }
-    if let Some(n) = v.as_u64() {
-        return Some(n.to_string());
-    }
-    if let Some(n) = v.as_i64() {
-        return Some(n.to_string());
-    }
-    None
 }
 
 fn safe_join(base: &Path, name: &str) -> PathBuf {
