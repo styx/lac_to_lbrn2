@@ -289,9 +289,9 @@ fn emit_header(xml: &mut XmlBuilder) {
 
 fn safe_join(base: &Path, name: &str) -> PathBuf {
     let mut path = base.to_path_buf();
-    for component in name.split('/') {
-        if !component.is_empty() && component != ".." {
-            path.push(component);
+    for component in Path::new(name).components() {
+        if let std::path::Component::Normal(c) = component {
+            path.push(c);
         }
     }
     path

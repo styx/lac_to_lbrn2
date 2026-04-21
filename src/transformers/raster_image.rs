@@ -32,7 +32,15 @@ impl RasterImageTransformer {
         let cy = t.ty() - oy;
 
         let file_name = obj["file_name"].as_str().unwrap_or("");
-        let png_path = Path::new(&self.objects_path).join(file_name);
+        let bare = Path::new(file_name)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("");
+        if bare.is_empty() {
+            eprintln!("Warning: invalid file_name in object, skipping");
+            return;
+        }
+        let png_path = Path::new(&self.objects_path).join(bare);
 
         let bytes = match std::fs::read(&png_path) {
             Ok(b) => b,
