@@ -29,7 +29,7 @@ impl XmlBuilder {
 
     pub fn inline(&mut self, name: &str, text: &str) {
         self.lines
-            .push(format!("{}<{}>{}</{}>", self.pad(), name, text, name));
+            .push(format!("{}<{}>{}</{}>", self.pad(), name, escape(text), name));
     }
 
     pub fn to_xml(&self) -> String {
