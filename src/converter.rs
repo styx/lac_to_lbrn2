@@ -103,13 +103,16 @@ impl Converter {
         .visit(&mut xml);
 
         let objects_path_str = objects_path.to_string_lossy().to_string();
-        ShapeVisitor::new(process_type_to_idx, objects_path_str)
+        let warnings = ShapeVisitor::new(process_type_to_idx, objects_path_str)
             .visit(&instances, &mut xml, offset);
 
         xml.leaf("Notes", &[("ShowOnLoad", "0"), ("Notes", "")]);
         xml.close("LightBurnProject");
 
         std::fs::write(&self.output, xml.to_xml())?;
+        for w in &warnings {
+            eprintln!("Warning: {w}");
+        }
         println!("Done: {} objects → {}", instances.len(), self.output);
 
         Ok(())

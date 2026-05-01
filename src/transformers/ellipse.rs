@@ -1,3 +1,4 @@
+use crate::transformers::ShapeTransformer;
 use crate::types::Instance;
 use crate::utils::fnum;
 use crate::xml_builder::XmlBuilder;
@@ -8,14 +9,16 @@ impl EllipseTransformer {
     pub fn new() -> Self {
         Self
     }
+}
 
-    pub fn transform(
-        &self,
+impl ShapeTransformer for EllipseTransformer {
+    fn transform(
+        &mut self,
         instance: &Instance,
         xml: &mut XmlBuilder,
         cut_index: usize,
         offset: (f64, f64),
-    ) {
+    ) -> Vec<String> {
         let obj = &instance.obj;
         let t = &instance.transform;
         let (ox, oy) = offset;
@@ -45,6 +48,6 @@ impl EllipseTransformer {
             &format!("1 0 0 1 {} {}", fnum(cx - ox), fnum(cy - oy)),
         );
         xml.close("Shape");
+        vec![]
     }
 }
-

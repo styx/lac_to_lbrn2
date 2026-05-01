@@ -1,5 +1,6 @@
 use crate::path_parser;
 use crate::subpath_converter;
+use crate::transformers::ShapeTransformer;
 use crate::types::Instance;
 use crate::xml_builder::XmlBuilder;
 
@@ -15,21 +16,23 @@ impl PathTransformer {
             prim_id: 0,
         }
     }
+}
 
-    pub fn transform(
+impl ShapeTransformer for PathTransformer {
+    fn transform(
         &mut self,
         instance: &Instance,
         xml: &mut XmlBuilder,
         cut_index: usize,
         offset: (f64, f64),
-    ) {
+    ) -> Vec<String> {
         let obj = &instance.obj;
         let t = &instance.transform;
         let (ox, oy) = offset;
 
         let path_data = match obj["path_data"].as_str() {
             Some(s) => s,
-            None => return,
+            None => return vec![],
         };
         let is_closed = obj["is_closed"].as_bool().unwrap_or(false);
 
@@ -54,5 +57,6 @@ impl PathTransformer {
                 self.prim_id += 1;
             }
         }
+        vec![]
     }
 }

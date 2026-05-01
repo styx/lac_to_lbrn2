@@ -1,3 +1,4 @@
+use crate::transformers::ShapeTransformer;
 use crate::types::Instance;
 use crate::utils::fnum;
 use crate::xml_builder::XmlBuilder;
@@ -12,14 +13,16 @@ impl RasterImageTransformer {
     pub fn new(objects_path: String) -> Self {
         Self { objects_path }
     }
+}
 
-    pub fn transform(
-        &self,
+impl ShapeTransformer for RasterImageTransformer {
+    fn transform(
+        &mut self,
         instance: &Instance,
         xml: &mut XmlBuilder,
         cut_index: usize,
         offset: (f64, f64),
-    ) {
+    ) -> Vec<String> {
         let obj = &instance.obj;
         let t = &instance.transform;
         let (ox, oy) = offset;
@@ -37,16 +40,14 @@ impl RasterImageTransformer {
             .and_then(|n| n.to_str())
             .unwrap_or("");
         if bare.is_empty() {
-            eprintln!("Warning: invalid file_name in object, skipping");
-            return;
+            return vec!["invalid file_name in object, skipping raster image".to_string()];
         }
         let png_path = Path::new(&self.objects_path).join(bare);
 
         let bytes = match std::fs::read(&png_path) {
             Ok(b) => b,
             Err(e) => {
-                eprintln!("Warning: could not read {}: {}", png_path.display(), e);
-                return;
+                return vec![format!("could not read {}: {}", png_path.display(), e)];
             }
         };
         let b64 = STANDARD.encode(&bytes);
@@ -84,5 +85,6 @@ impl RasterImageTransformer {
         );
         xml.inline("XForm", &format!("1 0 0 1 {} {}", fnum(cx), fnum(cy)));
         xml.close("Shape");
+        vec![]
     }
 }
