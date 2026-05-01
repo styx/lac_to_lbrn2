@@ -71,3 +71,79 @@ fn fmt_vertex(v: &Vertex) -> String {
     }
     s
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::transform::Transform;
+    use crate::types::{Segment, SegmentKind};
+
+    fn move_seg(x: f64, y: f64) -> Segment {
+        Segment::new(SegmentKind::Move, vec![x, y])
+    }
+
+    fn line_seg(x: f64, y: f64) -> Segment {
+        Segment::new(SegmentKind::Line, vec![x, y])
+    }
+
+    fn bezier_seg(cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, ex: f64, ey: f64) -> Segment {
+        Segment::new(SegmentKind::Bezier, vec![cp1x, cp1y, cp2x, cp2y, ex, ey])
+    }
+
+    #[test]
+    fn empty_segments_returns_none() {
+        assert!(convert(&[], false, &Transform::identity(), 0.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn single_segment_returns_none() {
+        // Need at least a Move + one other segment to emit a primitive
+        let segs = vec![move_seg(0.0, 0.0)];
+        assert!(convert(&segs, false, &Transform::identity(), 0.0, 0.0).is_none());
+    }
+
+    #[test]
+    fn move_plus_line_produces_l_primitive() {
+        let segs = vec![move_seg(0.0, 0.0), line_seg(10.0, 0.0)];
+        let (verts, prims) = convert(&segs, false, &Transform::identity(), 0.0, 0.0).unwrap();
+        assert!(verts.contains("V0 0"));
+        assert!(verts.contains("V10 0"));
+        assert!(prims.contains("L0 1"));
+    }
+
+    #[test]
+    fn closed_path_appends_closing_primitive() {
+        let segs = vec![move_seg(0.0, 0.0), line_seg(10.0, 0.0)];
+        let (_, prims) = convert(&segs, true, &Transform::identity(), 0.0, 0.0).unwrap();
+        // Closing line from last vertex back to vertex 0
+        assert!(prims.contains("L1 0"));
+    }
+
+    #[test]
+    fn offset_is_subtracted_from_all_coordinates() {
+        let segs = vec![move_seg(5.0, 10.0), line_seg(15.0, 20.0)];
+        let (verts, _) = convert(&segs, false, &Transform::identity(), 5.0, 10.0).unwrap();
+        assert!(verts.contains("V0 0"));   // (5-5, 10-10)
+        assert!(verts.contains("V10 10")); // (15-5, 20-10)
+    }
+
+    #[test]
+    fn bezier_segment_produces_b_primitive() {
+        let segs = vec![
+            move_seg(0.0, 0.0),
+            bezier_seg(1.0, 0.0, 2.0, 1.0, 3.0, 0.0),
+        ];
+        let (_, prims) = convert(&segs, false, &Transform::identity(), 0.0, 0.0).unwrap();
+        assert!(prims.contains("B0 1"));
+    }
+
+    #[test]
+    fn transform_is_applied_to_coordinates() {
+        // Scale x2 in x, x3 in y
+        let t = Transform::parse(Some("2 0 0 3 0 0"));
+        let segs = vec![move_seg(1.0, 1.0), line_seg(2.0, 2.0)];
+        let (verts, _) = convert(&segs, false, &t, 0.0, 0.0).unwrap();
+        assert!(verts.contains("V2 3"));  // start: (1*2, 1*3)
+        assert!(verts.contains("V4 6"));  // end:   (2*2, 2*3)
+    }
+}

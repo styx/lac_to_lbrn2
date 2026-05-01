@@ -287,7 +287,10 @@ fn emit_header(xml: &mut XmlBuilder) {
     xml.close("UIPrefs");
 }
 
-fn safe_join(base: &Path, name: &str) -> PathBuf {
+/// Joins `base` and `name` while stripping any non-Normal path components
+/// (`..`, `.`, root prefix). This prevents ZIP-borne path traversal attacks.
+#[must_use]
+pub(crate) fn safe_join(base: &Path, name: &str) -> PathBuf {
     let mut path = base.to_path_buf();
     for component in Path::new(name).components() {
         if let std::path::Component::Normal(c) = component {
@@ -295,4 +298,56 @@ fn safe_join(base: &Path, name: &str) -> PathBuf {
         }
     }
     path
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn normal_relative_path_is_joined() {
+        let base = Path::new("/tmp/safe");
+        assert_eq!(safe_join(base, "2D/file.json"), Path::new("/tmp/safe/2D/file.json"));
+    }
+
+    #[test]
+    fn parent_traversal_is_stripped() {
+        let base = Path::new("/tmp/safe");
+        // "../../etc/passwd" has two ParentDir components that are filtered out
+        assert_eq!(safe_join(base, "../../etc/passwd"), Path::new("/tmp/safe/etc/passwd"));
+    }
+
+    #[test]
+    fn absolute_path_prefix_is_stripped() {
+        let base = Path::new("/tmp/safe");
+        // RootDir component is filtered, leaving only Normal components
+        assert_eq!(safe_join(base, "/etc/passwd"), Path::new("/tmp/safe/etc/passwd"));
+    }
+
+    #[test]
+    fn current_dir_component_is_stripped() {
+        let base = Path::new("/tmp/safe");
+        // CurDir (".") is not Normal, so it is filtered out
+        assert_eq!(safe_join(base, "./file.txt"), Path::new("/tmp/safe/file.txt"));
+    }
+
+    #[test]
+    fn empty_name_returns_base() {
+        let base = Path::new("/tmp/safe");
+        assert_eq!(safe_join(base, ""), Path::new("/tmp/safe"));
+    }
+
+    #[test]
+    fn single_normal_component() {
+        let base = Path::new("/tmp/safe");
+        assert_eq!(safe_join(base, "file.txt"), Path::new("/tmp/safe/file.txt"));
+    }
+
+    #[test]
+    fn deeply_nested_traversal_cannot_escape_base() {
+        let base = Path::new("/base");
+        // All ".." stripped; only "secret" survives
+        assert_eq!(safe_join(base, "../../../secret"), Path::new("/base/secret"));
+    }
 }

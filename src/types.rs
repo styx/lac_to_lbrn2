@@ -37,11 +37,13 @@ impl Vertex {
     }
 }
 
+#[derive(Debug)]
 pub struct Instance {
     pub obj: serde_json::Value,
     pub transform: Transform,
 }
 
+#[derive(Debug)]
 pub struct ProcessParams {
     pub max_power: Option<f64>,
     pub speed: Option<f64>,

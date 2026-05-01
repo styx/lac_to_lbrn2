@@ -13,3 +13,6 @@ zip = "2"
 base64 = "0.22"
 clap = { version = "4", features = ["derive"] }
 tempfile = "3"
+
+[lints.rust]
+unused_must_use = "deny"
