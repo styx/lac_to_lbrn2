@@ -25,7 +25,7 @@ pub fn convert(
         match seg.kind {
             SegmentKind::Line => {
                 let (x, y) = transform.apply(seg.params[0], seg.params[1]);
-                vertices.last_mut().unwrap().c0 = None;
+                vertices.last_mut().expect("at least one vertex pushed before loop").c0 = None;
                 vertices.push(Vertex::new(x - ox, y - oy));
                 prims.push(format!("L{} {}", vi - 1, vi));
             }
@@ -33,7 +33,7 @@ pub fn convert(
                 let (cp1x, cp1y) = transform.apply(seg.params[0], seg.params[1]);
                 let (cp2x, cp2y) = transform.apply(seg.params[2], seg.params[3]);
                 let (ex, ey) = transform.apply(seg.params[4], seg.params[5]);
-                vertices.last_mut().unwrap().c0 = Some([cp1x - ox, cp1y - oy]);
+                vertices.last_mut().expect("at least one vertex pushed before loop").c0 = Some([cp1x - ox, cp1y - oy]);
                 let mut new_v = Vertex::new(ex - ox, ey - oy);
                 new_v.c1 = Some([cp2x - ox, cp2y - oy]);
                 vertices.push(new_v);
@@ -44,8 +44,8 @@ pub fn convert(
     }
 
     if is_closed && vertices.len() > 1 {
-        vertices.last_mut().unwrap().c0 = None;
-        vertices.first_mut().unwrap().c1 = None;
+        vertices.last_mut().expect("len > 1 guaranteed by branch condition").c0 = None;
+        vertices.first_mut().expect("len > 1 guaranteed by branch condition").c1 = None;
         prims.push(format!("L{} 0", vertices.len() - 1));
     }
 
