@@ -17,6 +17,9 @@ pub fn fnum(n: f64) -> String {
     if n == 0.0 {
         return "0".to_string();
     }
+    if !n.is_finite() {
+        return n.to_string();
+    }
 
     let abs = n.abs();
     let exp = abs.log10().floor() as i32;
@@ -106,6 +109,21 @@ mod tests {
     fn fnum_boundary_1e9_uses_decimal() {
         // exp = 9 is still inside (-4..10), so no scientific notation
         assert_eq!(fnum(1e9), "1000000000");
+    }
+
+    #[test]
+    fn fnum_nan_returns_string() {
+        assert_eq!(fnum(f64::NAN), "NaN");
+    }
+
+    #[test]
+    fn fnum_infinity_returns_string() {
+        assert_eq!(fnum(f64::INFINITY), "inf");
+    }
+
+    #[test]
+    fn fnum_neg_infinity_returns_string() {
+        assert_eq!(fnum(f64::NEG_INFINITY), "-inf");
     }
 
     #[test]
